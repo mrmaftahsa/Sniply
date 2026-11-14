@@ -37,7 +37,7 @@ jobs:
           disable-animations: true
           script: |
             gradle --no-daemon connectedDebugAndroidTest
-            adb pull /sdcard/Android/data/com.sniply.app/cache/sniply-home.png sniply-home.png
+            adb pull /data/local/tmp/sniply-home.png sniply-home.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
