@@ -1,0 +1,65 @@
+name: Publish signed update
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '51 7 * * 1'
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check signing configuration
+        id: signing
+        env:
+          KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Add Android signing secrets to enable signed releases.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.signing.outputs.ready == 'true'
+      - uses: actions/setup-java@v4
+        if: steps.signing.outputs.ready == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        if: steps.signing.outputs.ready == 'true'
+        with:
+          python-version: '3.11'
+      - uses: android-actions/setup-android@v3
+        if: steps.signing.outputs.ready == 'true'
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.signing.outputs.ready == 'true'
+        with:
+          gradle-version: '8.9'
+      - name: Build signed APK
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          APP_VERSION: 0.1.${{ github.run_number }}
+        run: |
+          printf '%s' "$KEY" | base64 --decode > "$RUNNER_TEMP/sniply.jks"
+          export BUILD_NUMBER=$((100000 + ${{ github.run_number }}))
+          export APP_VERSION="0.1.$BUILD_NUMBER"
+          export RELEASE_STORE="$RUNNER_TEMP/sniply.jks"
+          gradle --no-daemon assembleRelease lintRelease
+      - name: Publish update
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN: ${{ github.run_number }}
+        run: |
+          VERSION="0.1.$((100000 + RELEASE_RUN))"
+          gh release create "v$VERSION" app/build/outputs/apk/release/app-release.apk --title "Sniply $VERSION" --notes 'Signed Sniply build with the current yt-dlp extraction engine. Platform support varies; Android requires installation approval.'
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sniply.jks"
