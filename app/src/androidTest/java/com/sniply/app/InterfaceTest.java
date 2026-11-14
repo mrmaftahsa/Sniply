@@ -45,6 +45,10 @@ public class InterfaceTest {
         Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
         assertNotNull(screenshot);
         try (FileOutputStream output = new FileOutputStream(new File(context.getExternalCacheDir(), "sniply-home.png"))) { screenshot.compress(Bitmap.CompressFormat.PNG, 100, output); }
+        try (android.os.ParcelFileDescriptor descriptor = instrumentation.getUiAutomation().executeShellCommand("screencap -p /data/local/tmp/sniply-home.png");
+             FileInputStream stream = new FileInputStream(descriptor.getFileDescriptor())) {
+            byte[] chunk = new byte[1024]; while (stream.read(chunk) != -1) { }
+        }
         instrumentation.runOnMainSync(activity::finish);
     }
 }
