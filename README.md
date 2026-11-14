@@ -15,7 +15,7 @@ Open Sniply and paste a link, or share text from another app to Sniply. When the
 ## Current limitations
 
 - Platform support comes from yt-dlp and is not yet verified against live URLs on all seven platforms. Some require login, anti-bot challenges, or other unsupported access.
-- Only combined audio-and-video formats are selected. Separate tracks need an FFmpeg integration, so some YouTube videos, high resolutions and Reddit videos are unavailable. The app reports errors rather than saving silent video.
+- Combined videos with unknown codec or height metadata are accepted. If a combined format is unavailable, Sniply can download separate H.264 video and AAC audio and merge them on-device using Android MediaMuxer. Other separate-track codecs are not supported. Platform login, anti-bot challenges and JavaScript extraction requirements can still prevent a download.
 - Posts containing several videos download only the first item. Playlists, private content, DRM, account login and cookies are outside this version.
 - 1 GiB download limit where the platform reports size; quality choices are caps, not guarantees.
 - No cancellation/resume interface yet. Android can still stop long-running work.
@@ -38,3 +38,7 @@ gradle assembleDebug lintDebug
 The repository intentionally uses the pinned Gradle version in CI rather than a downloaded wrapper binary. Chaquopy 16.1 embeds Python 3.11; yt-dlp is resolved at build time for current extractor updates. Production builds should record and pin tested dependency versions.
 
 Download only content you own or have permission to save and respect platform terms. This app is not affiliated with the supported platforms.
+
+## Download regression checks
+
+The Android instrumented suite runs the embedded yt-dlp engine against generated local media: an MP4 whose format metadata omits codecs/height, and separate H.264/AAC files. It verifies actual downloads and checks that native merging produces readable video and audio tracks. These tests do not claim live support for every platform URL. Run `gradle connectedDebugAndroidTest` on an Android emulator or device.
