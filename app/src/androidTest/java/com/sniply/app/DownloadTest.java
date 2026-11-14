@@ -32,15 +32,16 @@ public class DownloadTest {
         try {
             extractor.setDataSource(merged.getAbsolutePath());
             boolean video = false, audio = false;
+            StringBuilder formats = new StringBuilder();
             for (int i = 0; i < extractor.getTrackCount(); i++) {
                 MediaFormat format = extractor.getTrackFormat(i);
-                String mime = format.getString(MediaFormat.KEY_MIME);
+                String mime = format.getString(MediaFormat.KEY_MIME); formats.append(format).append("; ");
                 video |= "video/avc".equals(mime); audio |= "audio/mp4a-latm".equals(mime);
                 extractor.selectTrack(i);
                 assertTrue("No playable samples in " + mime, extractor.getSampleSize() > 0);
                 extractor.unselectTrack(i);
             }
-            assertTrue("Merged file needs video and audio", video && audio);
+            assertTrue("Merged file needs video and audio: " + formats, video && audio);
         } finally { extractor.release(); }
     }
 }
