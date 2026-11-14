@@ -52,11 +52,12 @@ public class MainActivity extends Activity {
         scroll.addView(page);
         LinearLayout header = row();
         LinearLayout identity = row();
-        TextView mark = text("s", 25, INK, true); mark.setGravity(Gravity.CENTER);
-        mark.setBackground(shape(LIME, 16)); identity.addView(mark, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        ImageView mark = new ImageView(this); mark.setImageResource(R.drawable.ic_sniply); mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        identity.addView(mark, new LinearLayout.LayoutParams(dp(44), dp(44)));
         TextView name = text("sniply", 25, INK, true); name.setPadding(dp(10), 0, 0, 0); identity.addView(name);
         header.addView(identity, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView settings = action("•••", PAPER, INK, 24); settings.setContentDescription("Settings and updates"); settings.setTag("settings");
+        TextView settings = action("", Color.WHITE, INK, 24); settings.setContentDescription("Settings and updates"); settings.setTag("settings"); settings.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22000000), outline(Color.WHITE, LINE, 16), shape(Color.WHITE, 16)));
+        settings.setCompoundDrawablesRelative(null, null, null, null); settings.setPadding(dp(13), dp(13), dp(13), dp(13)); settings.setCompoundDrawablesRelative(icon(R.drawable.ic_settings, INK, 22), null, null, null);
         header.addView(settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
         settings.setOnClickListener(v -> showSettings()); page.addView(header);
         gap(page, 28);
@@ -82,13 +83,18 @@ public class MainActivity extends Activity {
         input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_GO);
         field.addView(input, new LinearLayout.LayoutParams(-1, dp(48)));
-        TextView paste = text("Paste from clipboard  ↗", 12, LIME, true); paste.setGravity(Gravity.CENTER_VERTICAL); paste.setMinHeight(dp(48)); paste.setContentDescription("Paste video link from clipboard");
+        TextView paste = action("Paste link", Color.rgb(57, 68, 51), LIME, 14);
+        paste.setPadding(dp(14), 0, dp(14), 0); paste.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22CFF473), outline(Color.rgb(57, 68, 51), Color.rgb(88, 106, 69), 14), shape(Color.WHITE, 14)));
+        paste.setCompoundDrawablePadding(dp(10)); paste.setCompoundDrawablesRelative(icon(R.drawable.ic_clipboard, LIME, 19), null, null, null); paste.setContentDescription("Paste video link from clipboard");
         paste.setOnClickListener(v -> pasteClipboard(true)); field.addView(paste); card.addView(field);
         source = text("YouTube, TikTok & 5 more", 11, Color.rgb(184, 193, 177), false); source.setPadding(dp(2), dp(12), 0, dp(12)); source.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); card.addView(source);
-        save = action("Save video  ↓", LIME, INK, 16); save.setTag("saveVideo");
+        save = action("Save video", LIME, INK, 16);
+        save.setPadding(dp(22), 0, dp(22), 0); save.setCompoundDrawablesRelative(null, null, icon(R.drawable.ic_download, INK, 23), null); save.setElevation(dp(3)); save.setTag("saveVideo");
         card.addView(save, new LinearLayout.LayoutParams(-1, dp(58))); save.setOnClickListener(v -> startDownload());
-        gap(card, 6);
-        qualityLabel = text("Best available  ·  Change", 11, Color.rgb(191, 202, 183), false); qualityLabel.setGravity(Gravity.CENTER); qualityLabel.setMinHeight(dp(48));
+        gap(card, 12);
+        qualityLabel = action("Best available", Color.rgb(40, 47, 39), Color.rgb(215, 225, 207), 12);
+        qualityLabel.setPadding(dp(14), 0, dp(14), 0); qualityLabel.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22FFFFFF), outline(Color.rgb(40, 47, 39), Color.rgb(73, 85, 64), 14), shape(Color.WHITE, 14)));
+        qualityLabel.setCompoundDrawablesRelative(icon(R.drawable.ic_tune, Color.rgb(215, 225, 207), 18), null, icon(R.drawable.ic_chevron, Color.rgb(215, 225, 207), 16), null);
         qualityLabel.setContentDescription("Choose video quality"); qualityLabel.setOnClickListener(v -> chooseQuality()); card.addView(qualityLabel);
 
         gap(page, 16);
@@ -136,9 +142,18 @@ public class MainActivity extends Activity {
     }
     private GradientDrawable shape(int color, int radius) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
     private GradientDrawable outline(int color, int stroke, int radius) { GradientDrawable d = shape(color, radius); d.setStroke(dp(1), stroke); return d; }
+    private Drawable icon(int resource, int color, int size) {
+        Drawable drawable = getDrawable(resource).mutate(); drawable.setTint(color); drawable.setBounds(0, 0, dp(size), dp(size)); return drawable;
+    }
     private TextView action(String title, int background, int color, int size) {
         TextView view = text(title, size, color, true); view.setGravity(Gravity.CENTER); view.setMinHeight(dp(48));
         view.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22000000), shape(background, 18), shape(Color.WHITE, 18)));
+        android.animation.StateListAnimator press = new android.animation.StateListAnimator();
+        press.addState(new int[]{android.R.attr.state_pressed}, android.animation.ObjectAnimator.ofPropertyValuesHolder(view,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", .975f), android.animation.PropertyValuesHolder.ofFloat("scaleY", .975f)).setDuration(90));
+        press.addState(new int[]{}, android.animation.ObjectAnimator.ofPropertyValuesHolder(view,
+            android.animation.PropertyValuesHolder.ofFloat("scaleX", 1f), android.animation.PropertyValuesHolder.ofFloat("scaleY", 1f)).setDuration(150));
+        view.setStateListAnimator(press);
         view.setFocusable(true); view.setClickable(true); view.setAccessibilityDelegate(new View.AccessibilityDelegate() {
             @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) { super.onInitializeAccessibilityNodeInfo(host, info); info.setClassName(Button.class.getName()); }
         }); return view;
@@ -163,7 +178,7 @@ public class MainActivity extends Activity {
     }
     private void updateInput() {
         String url = supportedLink(); boolean busy = DownloadService.running;
-        save.setEnabled(!busy); save.setAlpha(busy ? .55f : 1f); save.setText(busy ? "Saving your video…" : "Save video  ↓");
+        save.setEnabled(!busy); save.setAlpha(busy ? .55f : 1f); save.setText(busy ? "Saving your video…" : "Save video");
         source.setText(url != null ? "●  Link ready. Let’s keep it." : input.length() == 0 ? "YouTube, TikTok & 5 more" : "Use a video link from a supported platform");
         source.setTextColor(url != null ? LIME : Color.rgb(184, 193, 177));
     }
@@ -184,7 +199,7 @@ public class MainActivity extends Activity {
         int selected = java.util.Arrays.asList(values).indexOf(quality);
         new AlertDialog.Builder(this).setTitle("Make it yours").setSingleChoiceItems(labels, selected, (dialog, index) -> { quality = values[index]; updateQuality(); dialog.dismiss(); }).setNegativeButton("Done", null).show();
     }
-    private void updateQuality() { qualityLabel.setText((quality.startsWith("Balanced") ? "Up to 720p" : quality.startsWith("Data") ? "Up to 360p" : "Best available") + "  ·  Change"); }
+    private void updateQuality() { qualityLabel.setText((quality.startsWith("Balanced") ? "Up to 720p" : quality.startsWith("Data") ? "Up to 360p" : "Best available")); }
     private void renderStatus() {
         String value = DownloadService.status; boolean busy = DownloadService.running;
         if (value.equals(previousStatus) && busy == wasRunning) return;
