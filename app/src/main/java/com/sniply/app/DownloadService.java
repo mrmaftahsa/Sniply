@@ -54,6 +54,7 @@ public class DownloadService extends Service {
                 values.clear();
                 values.put(MediaStore.Video.Media.IS_PENDING, 0);
                 getContentResolver().update(destination, values, null, null);
+                getSharedPreferences("sniply", MODE_PRIVATE).edit().putString("latest_uri", destination.toString()).apply();
                 status = "Saved to gallery • Movies/Sniply";
             } catch (Exception error) {
                 if (destination != null) getContentResolver().delete(destination, null, null);

@@ -1,0 +1,10 @@
+<resources>
+    <style name="SniplyTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">#638930</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">#F7F8F2</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
