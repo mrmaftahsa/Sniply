@@ -1,0 +1,61 @@
+name: Test video links
+on:
+  workflow_dispatch:
+    inputs:
+      suite_json:
+        description: Paste the test batch JSON copied from Sniply Link Lab
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  test-links:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate test batch
+        env:
+          SUITE_JSON: ${{ inputs.suite_json }}
+        run: python scripts/live_links.py --validate
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build the real Android app and test runner
+        run: gradle --no-daemon assembleDebug assembleDebugAndroidTest
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SUITE_JSON: ${{ inputs.suite_json }}
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+            adb -s emulator-5554 install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            python scripts/live_links.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Sniply-link-report
+          path: sniply-report.json
+          retention-days: 7
+          if-no-files-found: warn
