@@ -211,7 +211,7 @@ public class MainActivity extends Activity {
         else if (failed) {
             statusTitle.setText("This one needs another try"); statusDetail.setText("Try another public link, or tap for details.");
         } else {
-            statusTitle.setText(value.startsWith("Downloading") ? "On its way to you…" : value.startsWith("Saving") ? "Making room in your gallery…" : "Finding your video…");
+            statusTitle.setText(value.startsWith("Downloading") ? "On its way to you…" : value.startsWith("Combining") ? "Bringing picture and sound together…" : value.startsWith("Saving") ? "Making room in your gallery…" : "Finding your video…");
             statusDetail.setText(value.startsWith("Downloading") ? value : "You can leave Sniply open or come back in a moment.");
             Matcher percent = Pattern.compile("(\\d+)%").matcher(value); boolean determinate = percent.find(); progress.setIndeterminate(!determinate); if (determinate) progress.setProgress(Math.min(100, Integer.parseInt(percent.group(1))), true);
         }

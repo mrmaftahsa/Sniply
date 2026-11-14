@@ -54,7 +54,7 @@ def fetch(url, folder, selector, tag, hook):
         'outtmpl': os.path.join(folder, f'%(id)s.{tag}.%(ext)s'),
         'format': selector,
         'noplaylist': True, 'playlist_items': '1', 'socket_timeout': 30,
-        'retries': 3, 'quiet': True, 'no_warnings': True,
+        'retries': 3, 'quiet': True, 'no_warnings': True, 'noprogress': True,
         'progress_hooks': [hook], 'max_filesize': 1024 * 1024 * 1024,
     }
     with yt_dlp.YoutubeDL(options) as engine:
