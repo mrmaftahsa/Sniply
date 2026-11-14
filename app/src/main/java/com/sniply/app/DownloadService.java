@@ -51,10 +51,15 @@ public class DownloadService extends Service {
             ByteBuffer buffer = ByteBuffer.allocate(8 * 1024 * 1024);
             MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
             while (true) {
+                // A valid AAC priming sample can have a negative timestamp.
+                // Sample size, rather than timestamp, identifies end of stream.
+                boolean videoEnded = videoSource.getSampleSize() < 0;
+                boolean audioEnded = audioSource.getSampleSize() < 0;
+                if (videoEnded && audioEnded) break;
                 long videoTime = videoSource.getSampleTime(), audioTime = audioSource.getSampleTime();
-                if (videoTime < 0 && audioTime < 0) break;
-                boolean useVideo = audioTime < 0 || (videoTime >= 0 && videoTime <= audioTime);
+                boolean useVideo = audioEnded || (!videoEnded && videoTime <= audioTime);
                 MediaExtractor source = useVideo ? videoSource : audioSource;
+                if (source.getSampleTime() < 0) { source.advance(); continue; }
                 long sampleSize = source.getSampleSize();
                 if (sampleSize > 64 * 1024 * 1024) throw new IOException("Video sample is too large to combine on this device");
                 if (sampleSize > buffer.capacity()) buffer = ByteBuffer.allocate((int) sampleSize);
