@@ -10,6 +10,7 @@ import os
 import re
 from urllib.parse import urlparse
 import yt_dlp
+from reddit_public import manifest_for
 
 HOSTS = ('youtube.com', 'youtu.be', 'instagram.com', 'facebook.com', 'fb.watch',
          'fb.com', 'x.com', 'twitter.com', 'pinterest.com', 'pin.it', 'reddit.com',
@@ -49,7 +50,7 @@ def video_selector(cap):
 AUDIO_SELECTOR = 'ba[ext=m4a]/ba[acodec^=mp4a]'
 
 
-def fetch(url, folder, selector, tag, hook):
+def fetch(url, folder, selector, tag, hook, api=None):
     options = {
         'outtmpl': os.path.join(folder, f'%(id)s.{tag}.%(ext)s'),
         'format': selector,
@@ -57,6 +58,8 @@ def fetch(url, folder, selector, tag, hook):
         'retries': 3, 'quiet': True, 'no_warnings': True, 'noprogress': True,
         'progress_hooks': [hook], 'max_filesize': 1024 * 1024 * 1024,
     }
+    if api:
+        options['extractor_args'] = {'twitter': {'api': [api]}}
     with yt_dlp.YoutubeDL(options) as engine:
         info = engine.extract_info(url, download=True)
         if info and info.get('_type') in ('playlist', 'multi_video'):
@@ -80,22 +83,36 @@ def download(text, folder, quality, progress):
             total = data.get('total_bytes') or data.get('total_bytes_estimate')
             progress.onProgress('Downloading: ' + (str(int(data.get('downloaded_bytes', 0) * 100 / total)) + '%' if total else 'in progress'))
 
+    host = (urlparse(url).hostname or '').lower()
+    candidates = [(url, None)]
+    if host == 'reddit.com' or host.endswith('.reddit.com') or host == 'redd.it':
+        try:
+            progress.onProgress('Finding public Reddit video…')
+            manifest = manifest_for(url)
+            if manifest:
+                candidates.insert(0, (manifest, None))
+        except Exception:
+            pass  # Keep the normal extractor available for other Reddit post types.
+    if host in ('x.com', 'twitter.com') or host.endswith(('.x.com', '.twitter.com')):
+        candidates.append((url, 'syndication'))  # Official public embed API; no private proxy.
     errors = []
-    try:
-        return [fetch(url, folder, combined_selector(cap), 'single', hook)]
-    except Exception as error:
-        errors.append(clean_error(error))
-    try:
-        video = fetch(url, folder, video_selector(cap), 'video', hook)
-        audio = fetch(url, folder, AUDIO_SELECTOR, 'audio', hook)
-        return [video, audio]
-    except Exception as error:
-        errors.append(clean_error(error))
-    unique = []
-    for message in errors:
-        if message not in unique:
-            unique.append(message)
-    raise ValueError(' | '.join(unique))
+    for candidate, api in candidates:
+        try:
+            return [fetch(candidate, folder, combined_selector(cap), 'single', hook, api)]
+        except Exception as error:
+            errors.append(clean_error(error))
+        try:
+            video = fetch(candidate, folder, video_selector(cap), 'video', hook, api)
+            audio = fetch(candidate, folder, AUDIO_SELECTOR, 'audio', hook, api)
+            return [video, audio]
+        except Exception as error:
+            errors.append(clean_error(error))
+    unique = list(dict.fromkeys(errors))
+    message = ' | '.join(unique)
+    if any(token in message.lower() for token in ('authentication', '--cookies', 'login required', 'sign in')):
+        platform = 'Reddit' if 'reddit' in host or host == 'redd.it' else 'X' if 'twitter' in host or 'x.com' in host else 'This platform'
+        raise ValueError(platform + ' did not provide a downloadable public video. The post may be restricted, or the platform may be blocking this network. Try another public video or another network.')
+    raise ValueError(message)
 
 
 def engine_version():

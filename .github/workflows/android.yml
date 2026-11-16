@@ -27,6 +27,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Test public Reddit metadata resolution
+        run: python -m unittest discover -s tests
       - name: Build APK and run Android lint
         env:
           BUILD_NUMBER: ${{ github.run_number }}
