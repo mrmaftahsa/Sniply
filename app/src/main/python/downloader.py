@@ -11,6 +11,7 @@ import re
 from urllib.parse import urlparse
 import yt_dlp
 from reddit_public import manifest_for
+from tiktok_video import canonical_url, playback_selector
 
 HOSTS = ('youtube.com', 'youtu.be', 'instagram.com', 'facebook.com', 'fb.watch',
          'fb.com', 'x.com', 'twitter.com', 'pinterest.com', 'pin.it', 'reddit.com',
@@ -84,6 +85,14 @@ def download(text, folder, quality, progress):
             progress.onProgress('Downloading: ' + (str(int(data.get('downloaded_bytes', 0) * 100 / total)) + '%' if total else 'in progress'))
 
     host = (urlparse(url).hostname or '').lower()
+    if host == 'tiktok.com' or host.endswith('.tiktok.com'):
+        try:
+            return [fetch(canonical_url(url), folder, playback_selector(cap), 'single', hook)]
+        except Exception as error:
+            detail = clean_error(error)
+            if any(word in detail.lower() for word in ('403', 'captcha', 'impersonat', 'blocked')):
+                raise ValueError('TikTok blocked this download request. No video was saved. Try the link on another network; this app cannot currently complete TikTok browser verification.') from None
+            raise ValueError(detail) from None
     candidates = [(url, None)]
     if host == 'reddit.com' or host.endswith('.reddit.com') or host == 'redd.it':
         try:
